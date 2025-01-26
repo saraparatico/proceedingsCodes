@@ -1,0 +1,49 @@
+{
+    "exp_params": {
+        "version": "v0",
+        "meshfile": "./initialization-files/mesh/",
+        "forwardDir": "./results/",
+        "inletDir": "./initialization-files/inlet/stationary/",
+        "obsDir":"./initialization-files/obs/stationary/",
+        "logDir": "./results/cb/stationary/",
+        "patient": "t4",
+        "saveinterval": 1
+    },
+    "model_params": {
+        "meshD": "2D",
+        "profile": "Parabolic",
+        "inletID": 1,
+        "rho": 0.00106,
+        "nu": 3.7,
+        "theta": 1,
+        "dt": 0.001,
+        "obs_dt": 0.021,
+        "frames": 40,
+        "generate": false,
+        "ObsUmax": 600,
+        "InletUmax": 800,
+        "radius": 30,
+        "stationary": true,
+        "solver": "IPCS",
+        "control": "inlet",
+        "weakControl": false,
+        "tractionFree": true,
+        "linear": true,
+        "BDF2": false,
+        "minMethod": "L-BFGS-B",
+        "minIt": 6
+    },
+    "stab_params": {
+        "beta": 0.2,
+        "convective": false,
+        "backflow": false,
+        "simvascularstab": true,
+        "nitsche_gamma": 100
+    },
+    "da_params": {
+	    "alpha": 1e-6,
+        "beta": 1e-3,
+        "regularize": true,
+        "optimization": false
+    }
+}
