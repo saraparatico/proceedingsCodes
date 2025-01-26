@@ -37,7 +37,7 @@ bash: "source /path/to/folder/bin/activate"
 - To deactivate the virtual environment, simply run:
 bash: "deactivate"
 - Inside the virtual environment, I typically used MPI (Message Passing Interface) to launch simulations, as follows:
-bash: "mpirun -n 12 python3 main.py --v 0"
+bash: "mpirun -n 12 python3 main.py --v 0".
 This command utilizes 12 processors on a workstation equipped with 24 CPU cores and 64 GB of RAM.
 
 However, this was my preferred setup for running simulations and you are free to choose the method that best suits your needs, whether you prefer to use fewer processors or run the simulation without MPI support.
