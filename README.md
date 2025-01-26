@@ -33,11 +33,11 @@ To run the simulation, modify the "v0.json" file to set the desired parameters (
 To work with the simulations, I decided to use a virtual environment. I created it using PyCharm, but then I often worked from the terminal, following these steps:
 - Creation of a Virtual Environment using Pycharm
 - Once the virtual environment is created, you can activate it by navigating to the folder containing the environment and running:
-bash: "source /path/to/folder/bin/activate"
+(on bash) "source /path/to/folder/bin/activate"
 - To deactivate the virtual environment, simply run:
-bash: "deactivate"
+(on bash) "deactivate"
 - Inside the virtual environment, I typically used MPI (Message Passing Interface) to launch simulations, as follows:
-bash: "mpirun -n 12 python3 main.py --v 0".
+(on bash) "mpirun -n 12 python3 main.py --v 0".
 This command utilizes 12 processors on a workstation equipped with 24 CPU cores and 64 GB of RAM.
 
 However, this was my preferred setup for running simulations and you are free to choose the method that best suits your needs, whether you prefer to use fewer processors or run the simulation without MPI support.
