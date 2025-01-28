@@ -31,7 +31,7 @@
         "linear": true,
         "BDF2": false,
         "minMethod": "L-BFGS-B",
-        "minIt": 6
+        "minIt": 10
     },
     "stab_params": {
         "beta": 0.2,
