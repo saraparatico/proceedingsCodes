@@ -1,3 +1,11 @@
+################################################################################
+################################### - main.py - ################################
+# This is the core file meant to be run.
+# It contains the structure of the optimization and simulation process,
+# involving the minimization of a functional using a control-based approach.
+################################################################################
+################################################################################
+
 #-----------------------------# IMPORT LIBRARIES #-----------------------------#
 #!/usr/bin/env python
 from __future__ import generators
@@ -353,4 +361,3 @@ if regularize:
     if stationary:
         J += assemble(Constant(0.5 * alpha * dt) * g_opt ** 2 * t_grad(g_opt, problem.V) ** 2 * dsu_)
         print("After optimization the functional is:", J)
-

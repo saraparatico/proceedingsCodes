@@ -1,3 +1,13 @@
+################################################################################
+################################# - problem.py - ###############################
+# This file is not intended to be run directly, as it is a helper for the main
+# script execution. It is responsible for containing useful technical
+# functions, like the ones used to geerate the synthetic inlet and
+# observation velocity expressions.
+################################################################################
+################################################################################
+
+#-----------------------------# IMPORT LIBRARIES #-----------------------------#
 import time
 from mshr import *
 from dolfin import *
@@ -11,29 +21,70 @@ from os.path import join
 from datetime import datetime
 
 #-----------------------------# DEFINITION OF BOUNDARIES #-----------------------------#
+
+# Define the inlet boundary condition (2D)
 class Inlet2D(SubDomain):
     def inside(self, x, on_boundary):
+        # The inlet is located at the leftmost part of the domain (x < 0.1)
+        # and must be on the boundary of the geometry.
+        # 0.1 can be modified basing on the 2D mesh dimensions.
         return on_boundary and x[0] < 0.1
 
+# Define the outlet boundary condition (2D)
 class Outlet2D(SubDomain):
     def inside(self, x, on_boundary):
+        # The outlet is located at the rightmost part of the domain (x > 199.9)
+        # and must be on the boundary of the geometry.
+        # 199.9 can be modified basing on the 2D mesh dimensions.
         return on_boundary and x[0] > 199.9
 
+# Define the wall boundaries (2D)
 class Walls2D(SubDomain):
     def inside(self, x, on_boundary):
-        return on_boundary and x[1] < 0.1 and x[1] > 40.9
+        # The walls are defined at the top and bottom boundaries of the domain.
+        # The bottom wall is at y < 0.1, and the top wall is at y > 40.9.
+        # 0.1 and 40.9 can be modified basing on the 2D mesh dimensions.
+        return on_boundary and (x[1] < 0.1 or x[1] > 40.9)
 
-#-----------------------------# READING .json #-----------------------------#
+#-----------------------------# READING .json CONFIGURATION FILE #-----------------------------#
+
 def load_conf_file(config_file):
-   if 'json' in config_file:
-       with open(config_file, 'r') as f:
-           cfg = json.load(f)
-       Conf = object()
-       cf = DefaultMunch.fromDict(cfg, Conf)
-       return cf
+    """
+    Loads a JSON configuration file and converts it into an accessible object.
+
+    Parameters:
+    - config_file (str): Path to the JSON configuration file.
+
+    Returns:
+    - cf (DefaultMunch): Object that allows accessing JSON keys as attributes.
+    """
+
+    # Check if the provided file is a JSON file
+    if 'json' in config_file:
+        # Open and read the JSON file
+        with open(config_file, 'r') as f:
+            cfg = json.load(f)
+
+        # Create an empty object to store the configuration
+        Conf = object()
+
+        # Convert dictionary into an attribute-accessible object
+        cf = DefaultMunch.fromDict(cfg, Conf)
+
+        return cf
 
 #-----------------------------# BOUNDARY FUNCTION FOR INLET VELOCITY - 2D TIME VARIANT #-----------------------------#
+
 class BoundaryFunction2D(UserExpression):
+    """
+    Defines a time-variant boundary velocity function for a 2D inlet.
+
+    Parameters:
+    - t (float): Current time.
+    - Umax_g (float): Maximum velocity magnitude.
+    - profile (str): Type of velocity profile ("Plug" or "Parabolic").
+    """
+
     def __init__(self, t, Umax_g, profile, **kwargs):
         super().__init__(**kwargs)
         self.t = t
@@ -41,53 +92,109 @@ class BoundaryFunction2D(UserExpression):
         self.profile = profile
 
     def eval(self, values, x):
+        """
+        Evaluates the velocity at a given spatial point x.
+
+        Parameters:
+        - values (list): Output velocity components [vx, vy].
+        - x (tuple): Spatial coordinates (x[0], x[1]).
+        """
         if self.profile == "Plug":
-            U = 4 * self.Umax_g * x[1] * (41 - x[1]) / pow(41, 2) * sin(pi * 0.05 / 0.3)
-            values[0] = U
-            values[1] = 0
-        ########### I WANT TO BLOCK SYSTOLE WHEN U = 400 IS REACHED AND FIX THIS VALUE DURING DIASTOLE
+            # Plug flow profile: uniform velocity with a sinusoidal time variation.
+            U = (4 * self.Umax_g * x[1] * (41 - x[1]) / pow(41, 2)) * sin(pi * 0.05 / 0.3)
+            values[0] = U  # x-direction velocity
+            values[1] = 0  # y-direction velocity
+
         elif self.profile == "Parabolic":
+            # Parabolic profile: velocity distribution follows a parabolic shape.
             if self.t < 0.25:
-                U = 4 * self.Umax_g * x[1] * (41 - x[1]) / pow(41, 2) * sin(pi * self.t / 0.3)  # --> parabolic
+                # Initial systolic phase with a parabolic velocity profile
+                U = (4 * self.Umax_g * x[1] * (41 - x[1]) / pow(41, 2)) * sin(pi * self.t / 0.3)
                 values[0] = U
                 values[1] = 0
+
             elif 0.25 <= self.t < 0.85 or 1.05 <= self.t < 1.65 or self.t >= 1.85:
-                U = 4 * self.Umax_g * x[1] * (41 - x[1]) / pow(41, 2) * sin(pi * 0.05 / 0.3)
+                # Diastolic phase: flow is forced into a plug profile
+                U = (4 * self.Umax_g * x[1] * (41 - x[1]) / pow(41, 2)) * sin(pi * 0.05 / 0.3)
                 values[0] = U
                 values[1] = 0
+
             elif 0.85 <= self.t < 1.05:
-                U  = 4 * self.Umax_g * x[1] * (41-x[1])/pow(41, 2) * sin(pi*(self.t - 0.8)/0.3) # --> parabolic
+                # Transitioning phase back to a parabolic profile
+                U = (4 * self.Umax_g * x[1] * (41 - x[1]) / pow(41, 2)) * sin(pi * (self.t - 0.8) / 0.3)
                 values[0] = U
                 values[1] = 0
+
             elif 1.65 <= self.t < 1.85:
-                U  = 4 * self.Umax_g * x[1] * (41-x[1])/pow(41, 2) * sin(pi*(self.t - 1.6)/0.3) # --> parabolic
+                # Parabolic transition
+                U = (4 * self.Umax_g * x[1] * (41 - x[1]) / pow(41, 2)) * sin(pi * (self.t - 1.6) / 0.3)
                 values[0] = U
                 values[1] = 0
 
     def value_shape(self):
+        """
+        Specifies the shape of the returned velocity vector.
+
+        Returns:
+        - tuple: (2,), indicating a 2D velocity vector (vx, vy).
+        """
         return (2,)
 
 
 #-----------------------------# BOUNDARY FUNCTION FOR INLET VELOCITY - 2D STATIONARY #-----------------------------#
+
 class StationaryBoundaryFunction2D(UserExpression):
+    """
+    Defines a boundary function for a stationary inlet velocity in 2D.
+
+    Parameters:
+    - Umax (float): Maximum velocity magnitude.
+    - profile (str): Velocity profile type ("Plug" or "Parabolic").
+    """
     def __init__(self, Umax, profile, **kwargs):
         super().__init__(**kwargs)
         self.Umax = Umax
         self.profile = profile
 
     def eval(self, values, x):
+        """
+        Evaluates the velocity at a given spatial point x.
+
+        Parameters:
+        - values (list): Output velocity components [vx, vy].
+        - x (tuple): Spatial coordinates (x[0], x[1]).
+        """
         if self.profile == "Plug":
-            U = self.Umax # --> plug
-        if self.profile == "Parabolic":
-            U = 4*self.Umax*x[1]*(41-x[1])/pow(41, 2) # --> parabolic
-        values[0] = U
-        values[1] = 0
+            # Uniform (plug) velocity profile with constant velocity
+            U = self.Umax
+        elif self.profile == "Parabolic":
+            # Parabolic velocity profile (maximum velocity at the center and zero at the boundary)
+            U = 4 * self.Umax * x[1] * (41 - x[1]) / pow(41, 2)
+
+        values[0] = U  # x-direction velocity
+        values[1] = 0  # y-direction velocity
 
     def value_shape(self):
+        """
+        Specifies the shape of the returned velocity vector.
+
+        Returns:
+        - tuple: (2,), indicating a 2D velocity vector (vx, vy).
+        """
         return (2,)
 
 #-----------------------------# BOUNDARY FUNCTION FOR INLET VELOCITY - 3D TIME VARIANT #-----------------------------#
+
 class BoundaryFunction3D(UserExpression):
+    """
+    Defines a time-variant boundary velocity function for a 3D inlet.
+
+    Parameters:
+    - t (float): Current time.
+    - radius (float): Radial distance from the center.
+    - Umax (float): Maximum velocity magnitude.
+    - profile (str): Velocity profile type ("Plug" or "Parabolic").
+    """
     def __init__(self, t, radius, Umax, profile, **kwargs):
         super().__init__(**kwargs)
         self.t = t
@@ -96,42 +203,83 @@ class BoundaryFunction3D(UserExpression):
         self.profile = profile
 
     def eval(self, values, x):
+        """
+        Evaluates the velocity at a given spatial point x in 3D.
+
+        Parameters:
+        - values (list): Output velocity components [vx, vy, vz].
+        - x (tuple): Spatial coordinates (x[0], x[1], x[2]).
+        """
         if self.profile == "Plug":
+            # Plug flow profile: uniform velocity in the radial direction
             U = self.Umax * (1.0 - (x[0] * x[0] + x[1] * x[1]) / self.radius / self.radius)
-        if self.profile == "Parabolic":
+        elif self.profile == "Parabolic":
+            # Parabolic velocity profile with time variation
             if self.t < 0.25:
-                U = self.Umax * (1.0 - (x[0] * x[0] + x[1] * x[1]) / self.radius / self.radius)*sin(pi*self.t/0.3)
+                # Systolic phase with parabolic profile and sinusoidal time dependence
+                U = self.Umax * (1.0 - (x[0] * x[0] + x[1] * x[1]) / self.radius / self.radius) * sin(pi * self.t / 0.3)
             else:
-                U = self.Umax * (1.0 - (x[0] * x[0] + x[1] * x[1]) / self.radius / self.radius)*sin(pi*0.05/0.3)
-        values[0] = 0
-        values[1] = 0
-        values[2] = U
+                # Diastolic phase with plug profile and sinusoidal time dependence
+                U = self.Umax * (1.0 - (x[0] * x[0] + x[1] * x[1]) / self.radius / self.radius) * sin(pi * 0.05 / 0.3)
+
+        values[0] = 0  # x-direction velocity (no velocity component in x)
+        values[1] = 0  # y-direction velocity (no velocity component in y)
+        values[2] = U  # z-direction velocity (radial component in 3D)
 
     def value_shape(self):
+        """
+        Specifies the shape of the returned velocity vector.
+
+        Returns:
+        - tuple: (3,), indicating a 3D velocity vector (vx, vy, vz).
+        """
         return (3,)
 
 class StationaryBoundaryFunction3D(UserExpression):
-        def __init__(self, t, radius, Umax, profile, **kwargs):
-            super().__init__(**kwargs)
-            self.t = t
-            self.radius = radius
-            self.Umax = Umax
-            self.profile = profile
+    """
+    Defines a stationary boundary velocity function for a 3D inlet.
 
-        def eval(self, values, x):
-            if self.profile == "Plug":
-                #U = self.Umax * (1.0 - (x[0] * x[0] + x[1] * x[1]) / self.radius / self.radius)
-                U = self.Umax
-                # U = self.Umax*sin(pi*self.t/0.6)   #plug
-            if self.profile == "Parabolic":
-                # U = self.Umax*(1.0 - (x[0]*x[0] + x[1]*x[1])/self.radius/self.radius)*sin(pi*self.t/0.3)    #parabolic
-                U = self.Umax * (1.0 - (x[0] * x[0] + x[1] * x[1]) / self.radius / self.radius)
-            values[0] = 0
-            values[1] = 0
-            values[2] = U
+    Parameters:
+    - t (float): Current time.
+    - radius (float): Radial distance from the center.
+    - Umax (float): Maximum velocity magnitude.
+    - profile (str): Velocity profile type ("Plug" or "Parabolic").
+    """
+    def __init__(self, t, radius, Umax, profile, **kwargs):
+        super().__init__(**kwargs)
+        self.t = t
+        self.radius = radius
+        self.Umax = Umax
+        self.profile = profile
 
-        def value_shape(self):
-            return (3,)
+    def eval(self, values, x):
+        """
+        Evaluates the velocity at a given spatial point x in 3D.
+
+        Parameters:
+        - values (list): Output velocity components [vx, vy, vz].
+        - x (tuple): Spatial coordinates (x[0], x[1], x[2]).
+        """
+        if self.profile == "Plug":
+            # Uniform (plug) velocity profile in 3D
+            U = self.Umax
+        elif self.profile == "Parabolic":
+            # Parabolic velocity profile in 3D
+            U = self.Umax * (1.0 - (x[0] * x[0] + x[1] * x[1]) / self.radius / self.radius)
+
+        values[0] = 0  # x-direction velocity (no velocity component in x)
+        values[1] = 0  # y-direction velocity (no velocity component in y)
+        values[2] = U  # z-direction velocity (radial component in 3D)
+
+    def value_shape(self):
+        """
+        Specifies the shape of the returned velocity vector.
+
+        Returns:
+        - tuple: (3,), indicating a 3D velocity vector (vx, vy, vz).
+        """
+        return (3,)
+
 
 class _AnsiColorizer(object):
    """
