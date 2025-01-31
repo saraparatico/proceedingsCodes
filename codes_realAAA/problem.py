@@ -1,3 +1,11 @@
+################################################################################
+################################# - problem.py - ###############################
+# This file is not intended to be run directly, as it is a helper for the main
+# script execution. It is responsible for setting up the mesh, function spaces,
+# boundary conditions and observations required for the simulation.
+################################################################################
+################################################################################
+
 import time
 from collections import OrderedDict
 import os

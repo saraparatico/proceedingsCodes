@@ -1,3 +1,10 @@
+################################################################################
+################################# - solvers.py - ###############################
+# This file is not intended to be run directly, as it serves as a helper for
+# the main script. It implements the solvers used to perform simulations.
+################################################################################
+################################################################################
+
 #-----------------------------# IMPORT LIBRARIES #-----------------------------#
 import time
 from dolfin import *
@@ -93,7 +100,7 @@ class Coupled(object):
             if tractionFree:
                   T = Constant((0,) * dim)
                   F -= dot(T, v) * ds()  # Neumann BC
-                
+
             if V.ufl_element().degree() == 1:
                   h = CellDiameter(mesh)
                   F -= 0.001 * h ** 2 * inner(grad(p), grad(q)) * dx
