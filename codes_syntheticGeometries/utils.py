@@ -1,5 +1,5 @@
 ################################################################################
-################################# - problem.py - ###############################
+################################## - utils.py - ################################
 # This file is not intended to be run directly, as it is a helper for the main
 # script execution. It is responsible for containing useful technical
 # functions, like the ones used to geerate the synthetic inlet and
