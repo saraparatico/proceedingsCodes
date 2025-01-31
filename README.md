@@ -19,7 +19,7 @@ Both directories have a similar structure, which includes the following key file
 
 On the other hand, there is a significant difference in the input geometric and physical data between the two directories:
 - In "codes_syntheticGeometries", there is a folder named "initialization-files" which contains files for generating the initial meshes. Boundary conditions and observations are synthetically generated using functions defined in "utils.py".
-- In "codes_realAAA", there is a folder named "python-scripts", which contains two subfolders: "init-data" and "4DFlow-processing". The "init-data folder" includes files that allow you to convert the mesh into the required format from an input ".vtu" and ".vtp" file. The same files can also be used to generate the inlet and observation conditions with the provided codes.
+- In "codes_realAAA", there is a folder named "python-scripts", which contains two subfolders: "init-data". It" includes files that allow you to convert the mesh into the required format from an input ".vtu" and ".vtp" file. The same files can also be used to generate the inlet and observation conditions with the provided codes.
 
 ## Workflow
 For both directories, the following sequence of steps must be followed:
