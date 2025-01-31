@@ -64,7 +64,7 @@ frames = cf.model_params.frames  # Number of observation frames (obs_dt * frames
 # Note: The presence of `obs_dt` and `frames` reflects and anticipats the logic behind generating observations
 # in real-world scenarios, where observations are actual measurements with a specific resolution
 # that differs from the time step `dt`. Based on the number of measurements (`frames`),
-# we compute the entire observation period.
+# we compute the entire period.
 
 # Boundary condition settings.
 ObsUmax = cf.model_params.ObsUmax  # Maximum velocity value for the observation profile.

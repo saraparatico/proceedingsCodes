@@ -15,75 +15,97 @@ from mshr import *
 from collections import OrderedDict
 from dolfin import *
 from dolfin_adjoint import *
-from problem import baseProblem
-from solvers import Coupled, IPCS
 import argparse
 import numpy as np
 from os.path import join
+
+# Import from codes contained in the folder of the project
+from problem import baseProblem
+from solvers import Coupled, IPCS
 from utils import *
 
 #-----------------------------# SETTINGS: how to load .json file #-----------------------------#
+# The .json file contains the values of all the important variables of the project.
+# It's enough to modify the.json file in order to run different kind of simulations.
 parser = argparse.ArgumentParser()
 parser.add_argument('--v', type=str, default='0', help='version') # N.B. the default version is "v0"
 args = parser.parse_args()
 cf = load_conf_file(f'v{int(args.v)}.json')
 
-#-----------------------------# READ EXP PARAMS #-----------------------------#
-mesh_file = cf.exp_params.meshfile
-forwardDir = cf.exp_params.forwardDir
-inletDir = cf.exp_params.inletDir
-obsDir = cf.exp_params.obsDir
-meshDir = cf.exp_params.meshDir
-logDir = cf.exp_params.logDir
-patient = cf.exp_params.patient
-saveinterval = cf.exp_params.saveinterval
+#-----------------------------# EXPERIMENT PARAMETERS #-----------------------------#
+# These parameters define the directories used during the simulation process.
+mesh_file = cf.exp_params.meshfile # Name of the mesh file.
+forwardDir = cf.exp_params.forwardDir  # Directory where the forward simulation results are saved.
+inletDir = cf.exp_params.inletDir  # Directory where the inlet boundary condition file is located.
+obsDir = cf.exp_params.obsDir  # Directory where the observation data is stored.
+meshDir = cf.exp_params.meshDir # Directory where the mesh file is located.
+logDir = cf.exp_params.logDir  # Directory for the .log file created during optimization (contains callbacks and progress logs).
+patient = cf.exp_params.patient  # OBSOLETE: Previously used to point to a specific mesh file.
 
-#-----------------------------# READ MODEL PARAMS #-----------------------------#
-profile = cf.model_params.profile
-inletID = cf.model_params.inletID
-wallID = cf.model_params.wallID
-outletIDs = cf.model_params.outletIDs
-rho = cf.model_params.rho
-nu = cf.model_params.nu
-theta = cf.model_params.theta
-dt = cf.model_params.dt
-obs_dt = cf.model_params.obs_dt
-frames = cf.model_params.frames
-generate = cf.model_params.generate
-ObsUmax = cf.model_params.ObsUmax
-InletUmax = cf.model_params.InletUmax
-radius = cf.model_params.radius
-stationary = cf.model_params.stationary
-solver = cf.model_params.solver
-control = cf.model_params.control
-weakControl = cf.model_params.weakControl
-tractionFree = cf.model_params.tractionFree
-linear = cf.model_params.linear
-BDF2 = cf.model_params.BDF2
-minMethod = cf.model_params.minMethod
+#-----------------------------# MODEL PARAMETERS #-----------------------------#
+saveinterval = cf.exp_params.saveinterval # Number of iterations after which results are saved during optimization.
 
-#-----------------------------# READ STABILIZATION PARAMS #-----------------------------#
-beta = cf.stab_params.beta
-convective = cf.stab_params.convective
-backflow = cf.stab_params.backflow
-simvascularstab = cf.stab_params.simvascularstab
-nitsche_gamma = cf.stab_params.nitsche_gamma
+# Dimensionality and physical properties.
+profile = cf.model_params.profile  # OBSOLETE: Used only in synthetic data codes when BCs and observations were artificially generated.
+inletID = cf.model_params.inletID  # Tag associated with the inlet boundary condition.
+wallID = cf.model_params.wallID  # Tag associated with the wall boundary condition.
+outletIDs = cf.model_params.outletIDs  # Tags associated with the outlet boundary conditions (two outlets in real AAA geometry).
+rho = cf.model_params.rho  # Blood density (kg/m³).
+nu = cf.model_params.nu  # Kinematic viscosity of the blood (m²/s).
+theta = cf.model_params.theta  # Theta parameter used in time-stepping schemes.
+dt = cf.model_params.dt  # Time step for the solver loop.
 
-#-----------------------------# READ DA PARAMS #-----------------------------#
-alpha = cf.da_params.alpha
-alpha = Constant(alpha, name="alpha")
-beta_J = cf.da_params.beta
-beta_J = Constant(beta_J, name="beta_J")
-regularize = cf.da_params.regularize
-optimization = cf.da_params.optimization
+obs_dt = cf.model_params.obs_dt # Time step used for observations.
+frames = cf.model_params.frames  # Number of observation frames (obs_dt * frames = total simulation time T).
+# Note: The presence of `obs_dt` and `frames` reflects the logic behind generating observations
+# As shown in "inletW.py" and "obsW.py", observations are actual measurements with a specific resolution
+# that differs from the time step `dt`. Based on the number of measurements (`frames`),
+# we compute the entire period.
+
+# Boundary condition settings.
+ObsUmax = cf.model_params.ObsUmax # OBSOLETE: Used only in synthetic data codes when observations were artificially generated.
+InletUmax = cf.model_params.InletUmax # OBSOLETE: Used only in synthetic data codes when BCs were artificially generated.
+
+# Solver parameters.
+generate = cf.model_params.generate  # OBSOLETE: Used only in synthetic data codes when BCs and observations were artificially generated.
+
+radius = cf.model_params.radius # OBSOLETE: Used only in synthetic 3D mesh generation
+stationary = cf.model_params.stationary # OBSOLETE: Used only in synthetic data codes when BCs and observations were artificially generated.
+solver = cf.model_params.solver  # Solver type (Coupled or IPCS).
+control = cf.model_params.control  # Defines the control parameter (in this problem: inlet).
+weakControl = cf.model_params.weakControl  # Boolean for enabling weak control (using the Neitzche method).
+tractionFree = cf.model_params.tractionFree  # Boolean for enabling the traction-free condition.
+linear = cf.model_params.linear  # Boolean to toggle between linear and nonlinear simulations.
+BDF2 = cf.model_params.BDF2  # Boolean for using Backward Differentiation Formulas (BDF2) for time-stepping.
+minMethod = cf.model_params.minMethod  # Minimization method (e.g., BFGS, L-BFGS, or TNC).
+
+#-----------------------------# STABILIZATION PARAMETERS #-----------------------------#
+beta = cf.stab_params.beta  # OBSOLETE: Previously used for P1-P1 elements with Brezzi-Pitkaranta stabilization.
+convective = cf.stab_params.convective  # OBSOLETE: Boolean previously used for stabilization in P1-P1 elements with SUPG/PSPG (from Fumagalli).
+backflow = cf.stab_params.backflow  # OBSOLETE: In recent versions, backflow stabilization is always included by default.
+simvascularstab = cf.stab_params.simvascularstab  # Boolean: Enables backflow stabilization in nonlinear solver.
+nitsche_gamma = cf.stab_params.nitsche_gamma  # OBSOLETE: Previously used for Nitsche stabilization terms.
+
+#-----------------------------# DATA ASSIMILATION PARAMETERS #-----------------------------#.
+alpha = cf.da_params.alpha  # Coefficient for spatial regularization term.
+alpha = Constant(alpha, name="alpha")  # Define alpha as a constant for use in the solver.
+beta_J = cf.da_params.beta  # Coefficient for temporal regularization term.
+beta_J = Constant(beta_J, name="beta_J")  # Define beta_J as a constant for use in the solver.
+regularize = cf.da_params.regularize # Boolean: Decides whether to include regularization in the optimization process.
+optimization = cf.da_params.optimization # OBSOLETE: Previously used before the existence of control_generator.py and obs_generator.py; It was required to generate results without performing optimization.
 
 #---> INITIAL TIME STEP
 t = 0.0
 
-#--->Get working tape
+#---> Get the active working tape for recording operations
 tape = get_working_tape()
 
 #-----------------------------# CONFIGURE PROBLEM #-----------------------------#
+# The "problem" class handles:
+# - Reading and defining the mesh
+# - Generating function spaces
+# - Reading and defining inlet boundary condition (control)
+# - Reading and defining observations
 problem = baseProblem(mesh_file, meshDir, forwardDir, inletDir, obsDir, profile, dt, obs_dt, frames, control, inletID, wallID, outletIDs, solver, stationary, generate, ObsUmax, InletUmax, t, radius)
 
 #-----------------------------# SET UP CONTROLS: function used to create INLET g #-----------------------------#

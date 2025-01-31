@@ -2,10 +2,10 @@
     "exp_params": {
         "version": "v0",
         "mesh_file": "AAA03.h5",
-        "meshDir": "./init-data_2.4/mesh/mesh_2.4/AAA03.h5",
+        "meshDir": "./init-data/mesh/mesh_2.4/AAA03.h5",
         "forwardDir": "./results/Stationary",
-        "inletDir": "./init-data_2.4/inlet",
-        "obsDir":"./init-data_2.4/obs",
+        "inletDir": "./init-data/inlet",
+        "obsDir":"./init-data/obs",
         "logDir": "./results/Stationary/cb/obs",
         "patient": "AAA03-inletProj",
         "saveinterval": 1
