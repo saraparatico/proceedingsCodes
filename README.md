@@ -72,3 +72,10 @@ To work with the simulations, I decided to use a virtual environment. I created 
 This command utilizes 12 processors on a workstation equipped with 24 CPU cores and 64 GB of RAM.
 
 However, this was my preferred setup for running simulations and you are free to choose the method that best suits your needs, whether you prefer to use fewer processors or run the simulation without MPI support.
+
+## Disclaimer
+The code has been thoroughly commented to enhance readability as much as possible. However, it is not perfect—some sections may be obsolete and are no longer in use. Additionally, certain variables are hard-coded when they could be parameterized.  
+
+On the bright side, each of these cases has been explicitly marked within the code, so there are no surprises.  
+
+With that in mind, be patient and enjoy!
