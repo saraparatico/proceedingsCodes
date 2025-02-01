@@ -1,10 +1,13 @@
 ################################################################################
 ############################## - project_inlet.py - ############################
 # It's a code needed to prepare real inlet data to its use in IPCS scheme.
+# This file is necessary because "inletW.py" generates velocity input data
+# using first-order Lagrange elements, whereas the IPCS scheme
+# requires velocities in a second-order vector function space.
 # It must be run after the "init-data" codes but before running the simulation.
 ################################################################################
 ################################################################################
-
+# !!! IMPORTANT: MODIFY LINE RELATED TO DIRS TO SET YOUR OWN ROOT DIRECTORY !!!
 #-----------------------------# IMPORT LIBRARIES #-----------------------------#
 from dolfin import *
 from dolfin_adjoint import *
@@ -49,6 +52,10 @@ c = 0
 frames = 40  # Frames in the dataset
 obs_dt = 0.021 # Observation time step (time between frames)
 dt = 0.001 # Simulation time step
+# Note: The presence of `obs_dt` and `frames` reflects the logic behind generating observations
+# As shown in "inletW.py" and "obsW.py", observations are actual measurements with a specific resolution
+# that differs from the time step `dt`. Based on the number of measurements (`frames`),
+# we compute the entire period.
 T = frames * obs_dt + DOLFIN_EPS
 obs_t_range = np.arange(obs_dt, T, obs_dt)
 t_range = np.arange(0, T, dt)
@@ -65,13 +72,22 @@ Q = VectorFunctionSpace(mesh, 'CG', 2)
 
 # ---> Check if the simulation is stationary
 if stationary:
-    # ---> Define the specific time step to extract
+    # ---> Define the specific time step to extract.
+    # In stationary casem I want to focus on only one instant.
+    # !!! YOU CAN MODIFY THIS t VALUE !!!
     t = 63
+    # !!! REMEMBER: dt = 0.001 !!!
+    # The variable 't' represents the specific time instant at which
+    # we want to acquire observations.
+    # In other words, the corresponding relative time is given by
+    # T = 0.001 * 63 = 0.063.
 
     # ---> Create an empty function in the velocity space
     g = Function(V)
     # ---> Read the velocity field corresponding to time step t
     f.read(g, 'u/vector_{}'.format(t))
+
+    # KEY PASSAGE FROM FIRST ORDER FUNCTION SPACE TO SCOND ORDER FUNCTION SPACE
     # ---> Project the velocity field onto the higher-order function space Q
     j = project(g, Q)
 
@@ -101,7 +117,7 @@ else:
         # ---> Open an HDF5 file to store the time-variant inlet velocity field
         Hdf = HDF5File(MPI.comm_world, join(inletDir, 'Inlet_H5_TimeVariant_Real.h5'), 'w')
 
-        # ---> Loop over all time steps except the first one
+        # ---> Loop over ALL TIME STEPS (!!!every 0.001!!!) steps except the first one
         for i, t in enumerate(t_range[1:]):
             # ---> Round the time value to avoid numerical errors
             t = np.round(t, 8)
@@ -112,6 +128,7 @@ else:
             # ---> Read the velocity field corresponding to the current time step
             f.read(g_tmp, 'u/vector_{}'.format(i + 1))
 
+            # KEY PASSAGE FROM FIRST ORDER FUNCTION SPACE TO SCOND ORDER FUNCTION SPACE
             # ---> Project the velocity field onto the higher-order function space
             j = project(g_tmp, Q)
 

@@ -352,7 +352,7 @@ class Coupled(object):
 
             yield t, u_h, p_h, g_theta
 
-# -----------------------------# INCREMENTAL PRESSURE SPLITTING SCHEME #-----------------------------#
+# -----------------------------# INCREMENTAL PRESSURE CORRECTION SPLITTING SCHEME #-----------------------------#
 
 class IPCS(object):
     def __init__(self, problem):

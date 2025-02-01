@@ -1,6 +1,6 @@
 ################################################################################
 ################################ - obsW.py - ###################################
-# This script generates the velocity files to be used as inlet observation and
+# This script reads the velocity files to be used as inlet observation and
 # compared to the forward simulation result.
 # It should be run after the execution of convertMesh.py,
 # but before running the simulation.
@@ -26,6 +26,10 @@ patient = 'AAA03'
 # ---> Define time parameters (TODO: obs_dt  and frames should be user parameters)
 obs_dt = 0.021  # Time step between frames
 frames = 40  # Number of frames in the dataset
+# Note: The presence of `obs_dt` and `frames` reflects the logic behind generating observations
+# As shown in "inletW.py" and "obsW.py", observations are actual measurements with a specific resolution
+# that differs from the time step `dt`. Based on the number of measurements (`frames`),
+# we compute the entire period.
 T = frames * obs_dt + DOLFIN_EPS  # Total simulation time
 obs_t_range = np.arange(0, T, obs_dt)  # Time steps for velocity field (t=0 -> zero velocity)
 t_range = np.arange(0, T, obs_dt / 21)  # Finer time range for interpolation

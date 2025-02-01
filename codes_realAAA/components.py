@@ -1,9 +1,21 @@
 ################################################################################
-############################## - components.py - ############################
-# It's a code needed to prepare noisy observation to its use in IPCS scheme.
-# It must be run after the "init-data" codes but before running the simulation.
+############################## - components.py - ##############################
+# This script prepares noisy observations for use in the IPCS scheme.
+# It can be considered as an aternative to obsW.py for noisy data.
+# It processes real data modified with added noise, following the approach from:
+#
+# Saitta, S., Carioni, M., Mukherjee, S., Schönlieb, C. B., & Redaelli, A. (2024).
+# "Implicit neural representations for unsupervised super-resolution
+# and denoising of 4D flow MRI."
+# Computer Methods and Programs in Biomedicine, 246, 108057.
+# https://doi.org/10.1016/j.cmpb.2024.108057
+#
+# This script must be executed after the "init-data" preprocessing codes
+# but before running the simulation.
+# !!! IMPORTANT: MODIFY LINE RELATED TO DIRS TO SET YOUR OWN ROOT DIRECTORY !!!
 ################################################################################
 ################################################################################
+
 
 import numpy as np
 import pyvista as pv
@@ -61,7 +73,7 @@ w_array = np.array(w)
 ### COMBINATION OF COMPONENTS 1)
 # Stack velocity components into a single array
 velocity = np.column_stack((u, v, w))
-print(velocity.shape)  # Print velocity array shape
+print(velocity.shape)
 
 ### COMBINATION OF COMPONENTS 2)
 # Compute the magnitude of the velocity field

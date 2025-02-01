@@ -6,6 +6,7 @@
 ################################################################################
 ################################################################################
 
+#-----------------------------# IMPORT LIBRARIES #-----------------------------#
 import time
 from collections import OrderedDict
 import os
@@ -32,6 +33,7 @@ class baseProblem(object):
         self.solver = solver
         self.stationary = stationary
         self.generate = generate
+
         self.ObsUmax = ObsUmax
         self.InletUmax = InletUmax
         self.t = t
@@ -51,37 +53,86 @@ class baseProblem(object):
         self.bulk_id = 1
 
         # -----------------------------# READING MESH #-----------------------------#
-
         f = HDF5File(MPI.comm_world, meshDir, 'r')
-        # Load mesh
+
         mesh = Mesh()
+
         f.read(mesh, "mesh", False)
+        # Read the mesh data from the HDF5 file into the 'mesh' object.
+        # The third argument 'False' indicates that no ghost data is being read.
+
         self.mesh = mesh
+        # Store the mesh in the instance variable 'self.mesh' for later use.
+
         facet_ids = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+        # Create a MeshFunction to store facet IDs, which represent the boundary of the mesh.
+        # The 'size_t' type is used to store the facet IDs.
+
         f.read(facet_ids, "/boundaries")
+        # Read the facet IDs from the HDF5 file, which are stored under the "/boundaries" group.
+
         cell_ids = MeshFunction("size_t", mesh, mesh.topology().dim())
+        # Create a MeshFunction to store cell IDs for the bulk of the mesh (non-boundary cells).
+
         f.read(cell_ids, "/bulk")
+        # Read the cell IDs from the HDF5 file, which are stored under the "/bulk" group.
+
         self.facet_marker = facet_ids
+        # Store the facet IDs in 'self.facet_marker' for use in later computations.
+
         self.cell_ids = cell_ids
+        # Store the cell IDs in 'self.cell_ids' for use in later computations.
+
         f.close()
+
 
         # --> SURFACE UNIT FOR SURFACE INTEGRALS
         #ds = self.ds(subdomain_data=facet_marker)
 
         # -----------------------------# DEFINE FUNCTION SPACE #-----------------------------#
+
         if solver == "Coupled":
+
             self.V_ele = VectorElement("CG", mesh.ufl_cell(), 1)
+            # Define the vector function space for the velocity using the continuous Galerkin (CG)
+            # element of degree 1 (first-order) on the mesh's finite element cell.
+
             self.Q_ele = FiniteElement("CG", mesh.ufl_cell(), 1)
+            # Define the scalar function space for the pressure using the continuous Galerkin (CG)
+            # element of degree 1 (first-order) on the mesh's finite element cell.
+
             self.W = FunctionSpace(mesh, MixedElement([self.V_ele, self.Q_ele]))
+            # Define a mixed function space 'W' combining the velocity and pressure function spaces.
+
             self.V = self.W.sub(0).collapse()
+            # Extract the velocity subspace (first component of the mixed space) and collapse it
+            # into a standard function space.
+
             self.Q = self.W.sub(1).collapse()
+            # Extract the pressure subspace (second component of the mixed space) and collapse it
+            # into a standard function space.
+
             self.u_h = Function(self.V, name="Velocity")
+            # Create a function 'u_h' to store the velocity solution in the velocity function space.
 
         elif solver == "IPCS":
-            self.V = VectorFunctionSpace(mesh, "CG", 2)
-            self.Q = FunctionSpace(mesh, "CG", 1)
-            self.u_h = Function(self.V, name="Velocity")
 
+            self.V = VectorFunctionSpace(mesh, "CG", 2)
+            # Define the vector function space for the velocity using the continuous Galerkin (CG)
+            # element of degree 2 (second-order) on the mesh.
+
+            self.Q = FunctionSpace(mesh, "CG", 1)
+            # Define the scalar function space for the pressure using the continuous Galerkin (CG)
+            # element of degree 1 (first-order) on the mesh.
+
+            self.u_h = Function(self.V, name="Velocity")
+            # Create a function 'u_h' to store the velocity solution in the velocity function space.
+
+
+
+    # -----------------------------# READING INLET VELOCITIES FOR TIME-VARIANT CASES # -----------------------------#
+    # This function read time-variant velocity data to put in input to my simulation.
+    # This data was prviously created throught the proper inlet generator code.
     def construct_control(self):
 
         control_space = self.V
@@ -98,20 +149,21 @@ class baseProblem(object):
 
         return g
 
-    def construct_check_control(self):
-        forwardDir = self.forwardDir
 
-        g = Function(self.V, annotate=False)
-
-        with HDF5File(MPI.comm_world, join(forwardDir, 'CBcontrol10.h5'), 'r') as file5:
-            file5.read(g, "control")
-
-        return g
-
+    # -----------------------------# READ INLET VELOCITIES FOR STATIONARY CASES # -----------------------------#
+    # This function read stationary velocity data to put in input to my simulation.
+    # This data was prviously created throught the proper inlet generator code.
     def construct_stationary_control(self):
 
+        # !!! YOU CAN MODIFY THIS t VALUE !!!
         #t = 21
         t = 147
+        # !!! REMEMBER: dt = 0.001 !!!
+        # The variable 't' represents the specific time instant at which
+        # we want to acquire observations.
+        # In other words, the corresponding relative time is given by
+        # T = 0.001 * 147 = 0.147.
+
         # Create u_obs vector
         g = Function(self.V, name="control", annotate=False)
         #f = HDF5File(MPI.comm_world, join(self.inletDir + '/AAA03/mesh/all_results_True.h5'), 'r')
@@ -123,7 +175,10 @@ class baseProblem(object):
         return g
 
 
-    # -----------------------------# READING OBSERVATION VELOCITY #-----------------------------#
+    # -----------------------------# READING OBERVATIONS FOR TIME-VARIANT CASES # -----------------------------#
+    # This function read time-variant velocity data to be used as observations
+    # and to be compred to my simulation result.
+    # This data was prviously created throught the proper inlet generator code.
     def read_observation(self):
 
         # Create u_obs vector
@@ -143,10 +198,27 @@ class baseProblem(object):
 
         return obs
 
+
+    # -----------------------------# READ INLET VELOCITIES FOR STATIONARY CASES # -----------------------------#
+    # This function read stationary velocity data to be used as observations
+    # and to be compred to my simulation result.
+    # This data was prviously created throught the proper inlet generator code.
     def read_stationary_observation(self):
 
+        # !!! YOU CAN MODIFY THIS t VALUE !!!
         #t = 1
         t = 7
+        # !!! REMEMBER: obs_dt = 0.021 !!!
+        # The variable 't' represents the specific time instant at which
+        # we want to acquire observations.
+        # In other words, the corresponding relative time is given by
+        # T = 0.021 * 7 = 0.147.
+        # Note: The observation should be compared with the simulation result
+        # evaluated at the same time step.
+        # t = 7 is selected to align with the inlet time step,
+        # despite the different resolution in terms of obs_dt and dt.
+
+
         # Create u_obs vector
         obs = Function(self.V, name="observation", annotate=False)
         f = HDF5File(MPI.comm_world, join(self.obsDir + '/AAA03/mesh_2.4/uobs_velocities_noisy.h5'), 'r')

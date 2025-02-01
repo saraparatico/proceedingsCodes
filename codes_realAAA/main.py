@@ -108,16 +108,13 @@ tape = get_working_tape()
 # - Reading and defining observations
 problem = baseProblem(mesh_file, meshDir, forwardDir, inletDir, obsDir, profile, dt, obs_dt, frames, control, inletID, wallID, outletIDs, solver, stationary, generate, ObsUmax, InletUmax, t, radius)
 
-#-----------------------------# SET UP CONTROLS: function used to create INLET g #-----------------------------#
-#---> SET UP CONTROLS: function used to create g
-# 1st VERSION: U_inlet is an expression
+#-----------------------------# SET UP CONTROLS: function used to read INLET g #-----------------------------#
+#---> SET UP CONTROLS: function used to read g
+# STATIONARY CASE:
 if stationary:
-    ########## COMMENTO PER FARE TEST
     g = problem.construct_stationary_control()
-    ######### VERSIONE TEST
-    #uinlet = problem.construct_expression_control()
-    #g = project(uinlet, problem.V)
-# 2nd VERSION: g is a dictionary of Function(V)
+
+# TIME-VARIANT CASE
 else:
     g = problem.construct_control()
 
@@ -140,9 +137,11 @@ elif solver == "IPCS":
                      "weakControl": weakControl}
     solver_run = ns_solver.runIPCS(problem.t_range, g, **solver_params)
 
-
+#-----------------------------# SET UP OBSERVATIONS: function used to read OBSERVATION u_obs #-----------------------------#
+# STATIONARY CASE:
 if stationary:
     u_obs = problem.read_stationary_observation()
+# TIME-VARIANT CASE:
 else:
     u_obs = problem.read_observation()
 
