@@ -39,6 +39,7 @@ More in details..
 - Set up your problem by properly compiling the v0.json file.
 - Convert the Mesh: Use the scripts in the appropriate subfolder ("init-data\convertMesh.py") to read and convert the mesh into the desired format.
 - Generate Boundary Conditions and Observations: The boundary conditions and observations must be generated next, using the scripts in the appropriate subfolder ("init-data\inletW.py" and "init-data\obsW.py") to read and convert the velocity data into the desired format. Moreover, if you want to work with the IPCS scheme, you need to execute an addivite step using "project-inlet.py" and "project-obs.py" which project the data previously created onto the appropriate function space.
+N.B. There's another code related to observation generation, which is "components.py", but it is specific for working with noisy data.
 - Run the Main Simulation: After the mesh and boundary conditions are set, run "main.py" to execute the simulation.
 
 ## Usage
